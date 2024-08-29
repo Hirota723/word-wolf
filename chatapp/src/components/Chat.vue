@@ -1,5 +1,5 @@
 <script setup>
-import { inject, ref, reactive, onMounted, computed } from "vue"
+import { inject, ref, reactive, onMounted } from "vue"
 import socketManager from '../socketManager.js'
 
 // #region global state
@@ -15,16 +15,6 @@ const chatContent = ref("")
 const chatList = reactive([])
 // #endregion
 
-// #region computed property
-// chatListを逆順にソートするためのcomputedプロパティ
-const sortedChatList = computed(() => {
-  return [...chatList].sort((a, b) => {
-    // ここで逆順にソート
-    return b.id - a.id;
-  });
-});
-// #endregion
-
 // #region lifecycle
 onMounted(() => {
   registerSocketEvent()
@@ -38,9 +28,9 @@ const onPublish = () => {
 
   socket.emit("publishEvent", {
     user: userName.value,
-    message: chatContent.value,
-    id: Date.now() // 各メッセージに一意のIDを付けるためにタイムスタンプを使用
+    message: chatContent.value
   });
+
   // 入力欄を初期化
   chatContent.value = "";
 }
@@ -53,7 +43,7 @@ const onExit = () => {
 // メモを画面上に表示する
 const onMemo = () => {
   // メモの内容を表示
-  chatList.push({ user: userName.value, message: `${userName.value}さんのメモ: ${chatContent.value}`, id: Date.now() });
+  chatList.unshift(`${userName.value}さんのメモ: ${chatContent.value}`);
   // 入力欄を初期化
   chatContent.value = "";
 }
@@ -62,17 +52,17 @@ const onMemo = () => {
 // #region socket event handler
 // サーバから受信した入室メッセージ画面上に表示する
 const onReceiveEnter = (data) => {
-  chatList.push({ message: `${data}さんが入室しました`, id: Date.now() });
+  chatList.unshift(`${data}さんが入室しました`);
 }
 
 // サーバから受信した退室メッセージを受け取り画面上に表示する
 const onReceiveExit = (data) => {
-  chatList.push({ message: `${data}さんが退室しました`, id: Date.now() });
+  chatList.unshift(`${data}さんが退室しました`);
 }
 
 // サーバから受信した投稿メッセージを画面上に表示する
 const onReceivePublish = (data) => {
-  chatList.push(data);
+  chatList.unshift(`${data.user}さん: ${data.message}`);
 }
 // #endregion
 
@@ -80,11 +70,19 @@ const onReceivePublish = (data) => {
 // イベント登録をまとめる
 const registerSocketEvent = () => {
   // 入室イベントを受け取ったら実行
-  socket.on("enterEvent", onReceiveEnter);
+  socket.on("enterEvent", (data) => {
+    onReceiveEnter(data);
+  })
+
   // 退室イベントを受け取ったら実行
-  socket.on("exitEvent", onReceiveExit);
+  socket.on("exitEvent", (data) => {
+    onReceiveExit(data);
+  })
+
   // 投稿イベントを受け取ったら実行
-  socket.on("publishEvent", onReceivePublish);
+  socket.on("publishEvent", (data) => {
+    onReceivePublish(data);
+  })
 }
 // #endregion
 </script>
@@ -99,9 +97,9 @@ const registerSocketEvent = () => {
         <button @click="onPublish" class="button-normal">投稿</button>
         <button @click="onMemo" class="button-normal util-ml-8px">メモ</button>
       </div>
-      <div class="mt-5" v-if="sortedChatList.length !== 0">
+      <div class="mt-5" v-if="chatList.length !== 0">
         <ul>
-          <li class="item mt-4" v-for="(chat, i) in sortedChatList" :key="chat.id">{{ chat.message }}</li>
+          <li class="item mt-4" v-for="(chat, i) in chatList" :key="i">{{ chat }}</li>
         </ul>
       </div>
     </div>
