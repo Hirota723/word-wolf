@@ -1,0 +1,22 @@
+{ "subjects" :[
+    {"common": "Git", "wolf": "SVN"},
+    {"common": "Python", "wolf": "Ruby"},
+    {"common": "Docker", "wolf": "VirtualBox"},
+    {"common": "React", "wolf": "Vue.js"},
+    {"common": "HTML", "wolf": "Markdown"},
+    {"common": "Node.js", "wolf": "Django"},
+    {"common": "REST API", "wolf": "GraphQL"},
+    {"common": "MySQL", "wolf": "PostgreSQL"},
+    {"common": "Kubernetes", "wolf": "Docker Swarm"},
+    {"common": "OAuth", "wolf": "JWT"},
+    {"common": "CI/CD", "wolf": "DevOps"},
+    {"common": "SSH", "wolf": "Telnet"},
+    {"common": "JSON", "wolf": "XML"},
+    {"common": "Webpack", "wolf": "Gulp"},
+    {"common": "AWS", "wolf": "Azure"},
+    {"common": "CPU", "wolf": "GPU"},
+    {"common": "機械学習", "wolf": "深層学習"},
+    {"common": "スクラム", "wolf": "カンバン"},
+    {"common": "アジャイル", "wolf": "ウォーターフォール"},
+    {"common": "API", "wolf": "SDK"}
+]}
