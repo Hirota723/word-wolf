@@ -107,18 +107,24 @@ const processGame = () => {
   //Gameクラスをインスタンス化
   //const game = new Game(userList)
 
-  //game.user.all()から、isWolfとsubjectが入ったUserオブジェクトのリストを取得できる
+  //game.usersから、isWolfとsubjectが入ったUserオブジェクトのリストを取得できる
   //各ユーザーにお題を表示する
 
   // Timerクラスをインスタンス化
   // Timerクラスの仕様についてはfigmaのフローチャート参照
   // const timer = new Timer(minute)
 
-  // await timer.start()
+   timer.start(() => {
+  //タイマー終了後の処理（投票〜処刑〜結果発表）を以下に記述
 
-  // タイマー終了後の処理（投票〜処刑〜結果発表）を以下に記述
 
-  // ゲーム終了処理(入室制限解除)
+  //ゲーム終了処理(入室制限解除)
+
+
+  })
+  
+
+
 
 
 }
