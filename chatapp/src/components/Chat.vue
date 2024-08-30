@@ -71,11 +71,19 @@ const onReceivePublish = (data) => {
 const registerSocketEvent = () => {
   // 入室イベントを受け取ったら実行
   socket.on("enterEvent", (data) => {
+    // ikki: ここでユーザーオブジェクトのリストに、入室するユーザーを追加
+    // 最初に入室したユーザーについて、isHostをtrueに
+
+
     onReceiveEnter(data);
   })
 
   // 退室イベントを受け取ったら実行
   socket.on("exitEvent", (data) => {
+    // ikki: ここでユーザーオブジェクトのリストから、退出するユーザーを削除
+    // isHostがtrueのユーザーが入室した場合、その次のユーザーのisHostがtrueに
+
+
     onReceiveExit(data);
   })
 
@@ -85,6 +93,36 @@ const registerSocketEvent = () => {
   })
 }
 // #endregion
+
+//ikki: ここから下にゲームの進行部分を実装
+
+
+//ゲームの進行を行う関数
+//開始ボタン押下がトリガー
+const processGame = () => {
+
+  //ゲーム開始処理（入退室を制限）
+
+
+  //Gameクラスをインスタンス化
+  //const game = new Game(userList)
+
+  //game.user.all()から、isWolfとsubjectが入ったUserオブジェクトのリストを取得できる
+  //各ユーザーにお題を表示する
+
+  // Timerクラスをインスタンス化
+  // Timerクラスの仕様についてはfigmaのフローチャート参照
+  // const timer = new Timer(minute)
+
+  // await timer.start()
+
+  // タイマー終了後の処理（投票〜処刑〜結果発表）を以下に記述
+
+  // ゲーム終了処理(入室制限解除)
+
+
+}
+
 </script>
 
 <template>
