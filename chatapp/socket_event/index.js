@@ -4,23 +4,29 @@ let userList = [];
 export default (io, socket) => {
   // 入室メッセージをクライアントに送信する
   socket.on("enterEvent", (data) => {
+    // 他のクライアントに新しいユーザーの入室を通知
+    socket.broadcast.emit("enterEvent", data)
+    // 新しいユーザーオブジェクトを作成し、最初のユーザーならホストとして設定
     const newUser = { name: data, isHost: userList.length === 0 };
     userList.push(newUser);
+    // 全クライアントに更新されたユーザーリストを送信
     io.sockets.emit("updateUserList", userList);
   });
 
   // 退室メッセージをクライアントに送信する
   socket.on("exitEvent", (data) => {
+    // 他のクライアントに退室を通知
+    socket.broadcast.emit("exitEvent", data)
+    // 退室するユーザーをリストから削除し、そのユーザーがホストだった場合は新しいホストを設定
     const index = userList.findIndex(user => user.name === data);
     let removedUser;
     if (index !== -1) {
       removedUser = userList.splice(index, 1)[0];
     }
-
     if (removedUser && removedUser.isHost && userList.length > 0) {
       userList[0].isHost = true;
     }
-
+    // 全クライアントに更新されたユーザーリストを送信
     io.sockets.emit("updateUserList", userList);
   });
 
