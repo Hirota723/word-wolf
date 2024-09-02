@@ -2,23 +2,29 @@
 
 class Timer {
     minute;
+    remainingTime;
+    intervalId;
+
     constructor(minute) {
-        this.minute = minute
+        this.minute = minute;
+        this.remainingTime = minute * 60; // 残り時間を秒で計算
     }
 
-    start(callback) {
-        //　タイマーの表示をコントロール
-        var count = 0
-        const interval =  setInterval(() => {
-            count++
-            //この下の3行を消して、タイマーの制御を追加
-            console.log(count)
-            if (count / 60 > this.minute ) {
-                clearInterval(interval)
+    start(callback, onTick) {
+        this.intervalId = setInterval(() => {
+            this.remainingTime--;
+            onTick(this.remainingTime);  // Vueコンポーネントに残り時間を通知
+
+            if (this.remainingTime <= 0) {
+                clearInterval(this.intervalId);
+                callback();
             }
-            
-        }, 1000)
-        // {minute}分後にcallbackを実行
-        setTimeout(callback, this.minute * 1000 * 60)
+        }, 1000);
+    }
+
+    stop() {
+        clearInterval(this.intervalId);
     }
 }
+
+export default Timer;

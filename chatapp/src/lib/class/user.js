@@ -8,3 +8,4 @@ class User {
         this.isHost = isHost
     }
 }
+export default User;
