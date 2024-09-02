@@ -53,7 +53,7 @@ const onExit = () => {
 // メモを画面上に表示する
 const onMemo = () => {
   // メモの内容を表示
-  chatList.unshift(`${userName.value}さんのメモ: ${chatContent.value}`);
+  chatList.unshift(`${userName.value}$ memo ${chatContent.value}`);
   // 入力欄を初期化
   chatContent.value = "";
 }
@@ -62,17 +62,17 @@ const onMemo = () => {
 // #region socket event handler
 // サーバから受信した入室メッセージ画面上に表示する
 const onReceiveEnter = (data) => {
-  chatList.unshift(`${data}さんが入室しました`);
+  chatList.unshift(`import ${data}さん // ${data}が入室しました。`);
 }
 
 // サーバから受信した退室メッセージを受け取り画面上に表示する
 const onReceiveExit = (data) => {
-  chatList.unshift(`${data}さんが退室しました`);
+  chatList.unshift(`return ${data}さん // ${data}が退出しました。`);
 }
 
 // サーバから受信した投稿メッセージを画面上に表示する
 const onReceivePublish = (data) => {
-  chatList.unshift(`${data.user}さん: ${data.message}`);
+  chatList.unshift(`${data.user}$ ${data.message}`);
 }
 // #endregion
 
