@@ -1,6 +1,10 @@
 <script setup>
 import { inject, ref, reactive, onMounted } from "vue"
 import socketManager from '../socketManager.js'
+import User from '../lib/class/user.js'
+import Game from '../lib/class/game.js'
+import Timer from '../lib/class/timer.js'
+
 
 // #region global state
 const userName = inject("userName")
@@ -13,11 +17,17 @@ const socket = socketManager.getInstance()
 // #region reactive variable
 const chatContent = ref("")
 const chatList = reactive([])
+const userList = reactive([])  // ユーザーリストをリアクティブに管理
+let alertedForHost = false;  // ホストであることを通知済みかを管理
+const isHost = ref(false);  // ホストであるかどうかを管理
+const remainingTime = ref(0)  // 残り時間を表示するためのリアクティブ変数
+
+
 // #endregion
 
 // #region lifecycle
 onMounted(() => {
-  registerSocketEvent()
+  registerSocketEvent();
 })
 // #endregion
 
@@ -69,27 +79,51 @@ const onReceivePublish = (data) => {
 // #region local methods
 // イベント登録をまとめる
 const registerSocketEvent = () => {
-  // 入室イベントを受け取ったら実行
+  // ikki: ここでユーザーオブジェクトのリストに、入室するユーザーを追加
+  // 最初に入室したユーザーについて、isHostをtrueに
+  // サーバからのユーザリストで更新
+  socket.on("updateUserList", (serverUserList) => {
+    userList.length = 0;
+    userList.push(...serverUserList.map(user => new User(user.name, user.isHost)));
+
+    const currentUser = userList.find(user => user.name === userName.value);
+    if (currentUser && currentUser.isHost && !alertedForHost) {
+      alert(`${currentUser.name}さんがホストです`);
+      alertedForHost = true;
+      isHost.value = true;
+    } else if (!isHost.value) {
+      isHost.value = false;
+    }
+  });
+
   socket.on("enterEvent", (data) => {
-    // ikki: ここでユーザーオブジェクトのリストに、入室するユーザーを追加
-    // 最初に入室したユーザーについて、isHostをtrueに
-
-
     onReceiveEnter(data);
   })
 
-  // 退室イベントを受け取ったら実行
   socket.on("exitEvent", (data) => {
     // ikki: ここでユーザーオブジェクトのリストから、退出するユーザーを削除
     // isHostがtrueのユーザーが入室した場合、その次のユーザーのisHostがtrueに
-
-
     onReceiveExit(data);
   })
 
-  // 投稿イベントを受け取ったら実行
   socket.on("publishEvent", (data) => {
     onReceivePublish(data);
+  })
+
+  socket.on("subjectAssigned", (data) => {
+    if (data.name === userName.value) {
+      alert(`あなたのお題は ${data.subject} です`);　//お題を通知
+    }
+  })
+
+  socket.on("timerUpdate", (timeLeft) => {
+    remainingTime.value = timeLeft;　// タイマーの残り時間を更新
+  })
+
+  socket.on("timerEnd", () => {
+    alert("タイムアップ！投票を開始してください。");　// タイマー終了時に通知
+    // 投票フェーズへ
+    initiateVoting();
   })
 }
 // #endregion
@@ -105,30 +139,19 @@ const processGame = () => {
 
 
   //Gameクラスをインスタンス化
-  //const game = new Game(userList)
+  const game = new Game(userList);
+  const usersWithSubjects = game.users;
 
-  //game.usersから、isWolfとsubjectが入ったUserオブジェクトのリストを取得できる
-  //各ユーザーにお題を表示する
+  usersWithSubjects.forEach(user => {
+    socket.emit('subjectAssigned', { name: user.name, subject: user.subject });　// 各ユーザにお題を通知
+  });
 
-  // Timerクラスをインスタンス化
-  // Timerクラスの仕様についてはfigmaのフローチャート参照
-  // const timer = new Timer(minute)
+  if (isHost.value) {
+    socket.emit("startTimer", 5)　//　5分のタイマーを作成
+  }
 
-   timer.start(() => {
-  //タイマー終了後の処理（投票〜処刑〜結果発表）を以下に記述
-
-
-  //ゲーム終了処理(入室制限解除)
-
-
-  })
-  
-
-
-
-
+  alert('ゲームを開始しました！お題を確認してください。');
 }
-
 </script>
 
 <template>
@@ -140,11 +163,15 @@ const processGame = () => {
       <div class="mt-5">
         <button @click="onPublish" class="button-normal">投稿</button>
         <button @click="onMemo" class="button-normal util-ml-8px">メモ</button>
+        <button v-if="isHost" @click="processGame" class="button-normal">ゲーム開始</button>
       </div>
       <div class="mt-5" v-if="chatList.length !== 0">
         <ul>
           <li class="item mt-4" v-for="(chat, i) in chatList" :key="i">{{ chat }}</li>
         </ul>
+      </div>
+      <div v-if="remainingTime > 0">
+        <p>残り時間: {{ Math.floor(remainingTime / 60) }}分{{ remainingTime % 60 }}秒</p>
       </div>
     </div>
     <router-link to="/" class="link">

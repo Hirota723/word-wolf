@@ -1,17 +1,15 @@
 //maxまでの整数値での乱数を生成
 //wolfの割り当てで使用
-function getRandomInt(max) {
-    return Math.floor(Math.random() * max);
-  }
-  
-function getSubject() {
-    //subjects.jsonを読み込み
-    const fs = require('fs')
-    const json = JSON.parse(fs.readFileSync('../subject/subjects.js', 'utf8'))
+import subjects from '../subject/subjects.json';
 
-    //ランダムでsubjectsからお題を選択
-    const subjectSelectedIndex = getRandomInt(json.subjects.length)
-    return json.subjects[subjectSelectedIndex]
+function getRandomInt(max) {
+  return Math.floor(Math.random() * max);
+}
+
+function getSubject() {
+  // ランダムでsubjectsからお題を選択
+  const subjectSelectedIndex = getRandomInt(subjects.subjects.length);
+  return subjects.subjects[subjectSelectedIndex];
 }
 
 // ゲームオブジェクトを定義
@@ -25,7 +23,7 @@ class Game {
     constructor(users) {
         //ユーザーが二人以下ならエラー発生
         if (users.length < 3) {
-            throw new Error("二人以下でワードウルフはできません"); 
+            throw new Error("二人以下でワードウルフはできません");
         }
 
         this.users = users
@@ -36,27 +34,27 @@ class Game {
 
     //wolfの割り当てを行う
     #assignWolf() {
-        max = this.users.length
+        const max = this.users.length
         this.wolf = getRandomInt(max)
     }
 
     //ユーザーにお題を割り当て
     #distributeSubject() {
-        const editedUsers = []
-        const subject = getSubject()
-        for (var i = 0; i < users.length; i++) {
-            const user = this.users[i]
-            if (this.wolf === i) {
-                user.subject = subject.wolf
-                user.isWolf = true
-            } else {
-                user.subject = subject.common
-                user.isWolf = false
-            }
-            editedUsers.push(user)
+        const editedUsers = [];
+        const subject = getSubject();
+        for (let i = 0; i < this.users.length; i++) {
+          const user = this.users[i];
+          if (this.wolf === i) {
+            user.subject = subject.wolf;
+            user.isWolf = true;
+          } else {
+            user.subject = subject.common;
+            user.isWolf = false;
+          }
+          editedUsers.push(user);
         }
-        this.users = editedUsers
+        this.users = editedUsers;
+      }
     }
 
-}
-
+    export default Game;
