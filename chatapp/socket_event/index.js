@@ -1,5 +1,21 @@
 import Timer from '../src/lib/class/timer.js';
 let userList = [];
+let voteList = [];
+
+// 投票結果を取得する
+const getVoteResult = () => {
+  console.log("userList:"+userList);
+  console.log("voteList:"+voteList);
+  const voteResult = new Array(userList.length).fill(0);
+  console.log("voteResult:"+voteResult);
+  voteList.forEach(vote => {
+    voteResult[vote.votee]++;
+  });
+  console.log("voteResult:"+voteResult);
+  const corpse = voteResult.indexOf(Math.max(...voteResult));
+  console.log("corpse:"+corpse);
+  return corpse;
+}
 
 export default (io, socket) => {
   // 入室メッセージをクライアントに送信する
@@ -49,5 +65,23 @@ export default (io, socket) => {
     }, (remainingTime) => {
       io.sockets.emit("timerUpdate", remainingTime);  // 残り時間をクライアントに送信
     });
+  });
+  // 投票を開始する
+  socket.on("initiateVoting", (duration) => {
+    const timer = new Timer(duration)
+    timer.start(() => {
+      const corpse = getVoteResult();
+      io.sockets.emit("votingEnd", corpse);
+    }, (remainingTime) => {
+      io.sockets.emit("votingUpdate", remainingTime);
+    });
+  });
+
+
+  // 投票を受け付ける
+  socket.on("votingEvent", (data) => {
+    voteList.push(data);
+    console.log(voteList);
+    io.sockets.emit("votingWait");
   });
 }

@@ -3,7 +3,6 @@ import { inject, ref, reactive, onMounted } from "vue"
 import socketManager from '../socketManager.js'
 import User from '../lib/class/user.js'
 import Game from '../lib/class/game.js'
-import Timer from '../lib/class/timer.js'
 
 
 // #region global state
@@ -12,10 +11,13 @@ const userName = inject("userName")
 
 // #region local variable
 const socket = socketManager.getInstance()
+
+var wolf = -1;  // 人狼のインデックス
 // #endregion
 
 // #region reactive variable
 const chatContent = ref("")
+
 const chatList = reactive([])
 const userList = reactive([])  // ユーザーリストをリアクティブに管理
 let alertedForHost = false;  // ホストであることを通知済みかを管理
@@ -23,13 +25,34 @@ const isHost = ref(false);  // ホストであるかどうかを管理
 const remainingTime = ref(0)  // 残り時間を表示するためのリアクティブ変数
 
 
+//ダイアログの表示制御に使用
+const isVoteOpen = ref(false)
+const isVoteWaiting = ref(false)  // 投票待機中かどうかを管理
+const isVoteEnded = ref(false)  // 投票が終了したかどうかを管理
+
+//投票フェーズの状態を管理
+const winner = ref('')  // 投票の結果を管理
+const selectedPlayer = ref('')  // 投票対象のプレイヤーを管理
+const voteRemainingTime = ref(0)
+
 // #endregion
+
+
 
 // #region lifecycle
 onMounted(() => {
   registerSocketEvent();
 })
 // #endregion
+
+// 勝者を取得する関数
+const getWinner = (corpse) => {
+  if (corpse === wolf) {
+    return 'citizens'
+  } else {
+    return 'wolf'
+  }
+}
 
 // #region browser event handler
 // 投稿メッセージをサーバに送信する
@@ -125,36 +148,123 @@ const registerSocketEvent = () => {
     // 投票フェーズへ
     initiateVoting();
   })
+
+  socket.on("votingWait", () => {
+    isVoteOpen.value = false;　// 投票ダイアログを閉じる
+    isVoteWaiting.value = true;　// 投票待機中フラグをtrueに
+    isVoteEnded.value = false;　// 投票終了フラグをfalseに
+  })
+
+
+  socket.on("votingEnd", (corpse) => {
+    isVoteOpen.value = false;　// 投票ダイアログを閉じる
+    isVoteWaiting.value = false;　// 投票待機中フラグをfalseに
+    isVoteEnded.value = true;　// 投票終了フラグをtrueに
+    winner.value = getWinner(corpse)　// 投票の結果を表示
+  })
+
+  socket.on("votingUpdate", (timeLeft) => {
+    console.log(timeLeft);
+    voteRemainingTime.value = timeLeft;　// 投票時間の残り時間を更新
+  })
 }
+
 // #endregion
 
 //ikki: ここから下にゲームの進行部分を実装
-
 
 //ゲームの進行を行う関数
 //開始ボタン押下がトリガー
 const processGame = () => {
 
   //ゲーム開始処理（入退室を制限）
-
+  if (userList.length < 3) {
+    alert('ゲーム開始には3人以上のプレイヤーが必要です')
+    return
+  }
 
   //Gameクラスをインスタンス化
   const game = new Game(userList);
   const usersWithSubjects = game.users;
-
+  wolf = game.wolf
   usersWithSubjects.forEach(user => {
     socket.emit('subjectAssigned', { name: user.name, subject: user.subject });　// 各ユーザにお題を通知
   });
 
   if (isHost.value) {
-    socket.emit("startTimer", 5)　//　5分のタイマーを作成
+    socket.emit("startTimer", 0.1)　//　5分のタイマーを作成
   }
 
   alert('ゲームを開始しました！お題を確認してください。');
 }
+
+// 投票フェーズを開始する関数
+const initiateVoting = () => {
+  socket.emit('initiateVoting',0.1);　// 60秒の投票時間を設定
+  isVoteOpen.value = true;　// 投票ダイアログを表示
+}
+
+// 投票を送信
+const onVoteHandler = (selectedPlayer) => {
+  if (selectedPlayer === '') {
+    alert('投票対象を選択してください');
+    return;
+  }
+  console.log(selectedPlayer);
+  socket.emit('votingEvent', { voter: userName.value, votee: selectedPlayer });
+  isVoteOpen.value = false;
+}
 </script>
 
 <template>
+  <!-- 投票用ダイアログの表示 -->
+
+
+  <v-dialog v-model="isVoteOpen" width="auto" activator persistent>
+    <v-card>
+      <v-card-title>Who is the Wolf?</v-card-title>
+      <p>投票残り時間: {{ Math.floor(voteRemainingTime / 60) }}分{{ voteRemainingTime % 60 }}秒</p>
+      <select v-model="selectedPlayer">
+      <option v-for="(user, index) in userList" 
+        v-bind:value="index" 
+        v-bind:key="index">
+      {{ user.name }}
+      </option>
+      </select>
+      <v-card-actions>
+        <v-btn color="primary" block @click="onVoteHandler(selectedPlayer)"
+          >Vote</v-btn
+        >
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- 投票待ちダイアログの表示 -->
+  <v-dialog v-model="isVoteWaiting" width="auto" activator persistent>
+    <v-card>
+      <v-card-title>
+        他の人の投票を待っています
+      </v-card-title>
+    <p>投票残り時間: {{ Math.floor(voteRemainingTime / 60) }}分{{ voteRemainingTime % 60 }}秒</p>
+  </v-card>
+  </v-dialog>
+
+  <!-- ゲーム結果ダイアログの表示 -->
+  <v-dialog v-model="isVoteEnded" width="auto" activator persistent>
+    <v-card>
+      <v-card-title>{{ winner }} win!</v-card-title>
+      <ul>
+        <li v-for="(user, index) in userList" :key="index">
+          {{ user.name }}: "{{ user.subject }}"
+        </li>
+      </ul>
+      <v-card-actions>
+        <v-btn color="primary" block @click="isVoteEnded = !isVoteEnded"
+          >close</v-btn
+        >
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
   <div class="mx-auto my-5 px-4">
     <h1 class="text-h3 font-weight-medium">Vue.js Chat チャットルーム</h1>
     <div class="mt-10">

@@ -7,10 +7,11 @@
     "start": "vite"
   },
   "dependencies": {
-    "socket.io": "^4.5.3",
+    "@kouts/vue-modal": "^5.0.1",
+    "socket.io": "^4.7.5",
     "socket.io-client": "^4.5.3",
+    "vue": "^3.5.0",
     "vue-router": "^4.1.6",
-    "vue": "^3.2.45",
     "vuetify": "^3.1.1"
   },
   "devDependencies": {
