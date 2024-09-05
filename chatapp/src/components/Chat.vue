@@ -133,10 +133,21 @@ const registerSocketEvent = () => {
     onReceivePublish(data);
   })
 
-  socket.on("subjectAssigned", (data) => {
-    if (data.name === userName.value) {
-      alert(`あなたのお題は ${data.subject} です`);　//お題を通知
-    }
+  // socket.on("subjectAssigned", (data) => {
+  //   if (data.name === userName.value) {
+  //     alert(`あなたのお題は ${data.subject} です`);　//お題を通知
+  //   }
+  // })
+  socket.on("startGame", (game) => {
+    userList.length = 0;
+    userList.push(...game.users)
+
+    wolf = game.wolf;
+    userList.value.forEach((user) => {
+      if (user.name === userName.value) {
+        alert(`あなたのお題は ${user.subject} です`);　//お題を通知
+      }
+    })
   })
 
   socket.on("timerUpdate", (timeLeft) => {
@@ -156,6 +167,7 @@ const registerSocketEvent = () => {
     isVoteWaiting.value = false;　// 投票待機中フラグをfalseに
     isVoteEnded.value = true;　// 投票終了フラグをtrueに
     winner.value = getWinner(corpse)　// 投票の結果を表示
+    console.log(userList.value)
   })
 
   socket.on("votingUpdate", (timeLeft) => {
@@ -178,17 +190,19 @@ const processGame = () => {
     return
   }
 
-  //Gameクラスをインスタンス化
-  const game = new Game(userList);
-  const usersWithSubjects = game.users;
-  wolf = game.wolf
-  usersWithSubjects.forEach(user => {
-    socket.emit('subjectAssigned', { name: user.name, subject: user.subject });　// 各ユーザにお題を通知
-  });
+  socket.emit('startGame')
 
-  if (isHost.value) {
-    socket.emit("startTimer", 0.1)　//　5分のタイマーを作成
-  }
+  // //Gameクラスをインスタンス化
+  // const game = new Game(userList);
+  // const usersWithSubjects = game.users;
+  // wolf = game.wolf
+  // usersWithSubjects.forEach(user => {
+  //   socket.emit('subjectAssigned', { name: user.name, subject: user.subject });　// 各ユーザにお題を通知
+  // });
+
+  // if (isHost.value) {
+  //   socket.emit("startTimer", 0.1)　//　5分のタイマーを作成
+  // }
 
   alert('ゲームを開始しました！お題を確認してください。');
 }
@@ -205,7 +219,6 @@ const onVoteHandler = (selectedPlayer) => {
     alert('投票対象を選択してください');
     return;
   }
-  console.log(selectedPlayer);
   socket.emit('votingEvent', { voter: userName.value, votee: selectedPlayer });
   isVoteOpen.value = false;　// 投票ダイアログを閉じる
   isVoteWaiting.value = true;　// 投票待機中フラグをtrueに
