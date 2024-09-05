@@ -68,10 +68,12 @@ export default (io, socket) => {
   });
   // 投票を開始する
   socket.on("initiateVoting", (duration) => {
+    voteList.length = 0
     const timer = new Timer(duration)
     timer.start(() => {
       const corpse = getVoteResult();
       io.sockets.emit("votingEnd", corpse);
+      // voteListをクリア
     }, (remainingTime) => {
       io.sockets.emit("votingUpdate", remainingTime);
     });
@@ -82,6 +84,6 @@ export default (io, socket) => {
   socket.on("votingEvent", (data) => {
     voteList.push(data);
     console.log(voteList);
-    io.sockets.emit("votingWait");
+
   });
 }

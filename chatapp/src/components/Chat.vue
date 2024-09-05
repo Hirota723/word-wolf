@@ -149,11 +149,6 @@ const registerSocketEvent = () => {
     initiateVoting();
   })
 
-  socket.on("votingWait", () => {
-    isVoteOpen.value = false;　// 投票ダイアログを閉じる
-    isVoteWaiting.value = true;　// 投票待機中フラグをtrueに
-    isVoteEnded.value = false;　// 投票終了フラグをfalseに
-  })
 
 
   socket.on("votingEnd", (corpse) => {
@@ -200,7 +195,7 @@ const processGame = () => {
 
 // 投票フェーズを開始する関数
 const initiateVoting = () => {
-  socket.emit('initiateVoting',0.1);　// 60秒の投票時間を設定
+  socket.emit('initiateVoting',0.5);　// 30秒の投票時間を設定
   isVoteOpen.value = true;　// 投票ダイアログを表示
 }
 
@@ -212,7 +207,9 @@ const onVoteHandler = (selectedPlayer) => {
   }
   console.log(selectedPlayer);
   socket.emit('votingEvent', { voter: userName.value, votee: selectedPlayer });
-  isVoteOpen.value = false;
+  isVoteOpen.value = false;　// 投票ダイアログを閉じる
+  isVoteWaiting.value = true;　// 投票待機中フラグをtrueに
+  isVoteEnded.value = false;　// 投票終了フラグをfalseに
 }
 </script>
 
