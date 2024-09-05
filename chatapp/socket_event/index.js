@@ -1,4 +1,8 @@
 import Timer from '../src/lib/class/timer.js';
+import Game from '../src/lib/class/game.js';
+import User from '../src/lib/class/user.js';
+
+
 let userList = [];
 let voteList = [];
 
@@ -23,12 +27,22 @@ export default (io, socket) => {
     // 他のクライアントに新しいユーザーの入室を通知
     socket.broadcast.emit("enterEvent", data)
     // 新しいユーザーオブジェクトを作成し、最初のユーザーならホストとして設定
-    const newUser = { name: data, isHost: userList.length === 0 };
-    userList.push(newUser);
+    const user = new User(data, userList.length === 0);
+    userList.push(user);
     // 全クライアントに更新されたユーザーリストを送信
     io.sockets.emit("updateUserList", userList);
   });
 
+  socket.on("startGame", () => {
+    const game = new Game(userList);
+    io.sockets.emit("startGame", game);
+    const timer = new Timer(0.1);
+    timer.start(() => {
+      io.sockets.emit("timerEnd");
+    }, (remainingTime) => {
+      io.sockets.emit("timerUpdate", remainingTime);
+  })});
+  
   // 退室メッセージをクライアントに送信する
   socket.on("exitEvent", (data) => {
     // 他のクライアントに退室を通知
