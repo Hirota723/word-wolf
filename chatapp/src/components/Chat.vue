@@ -3,6 +3,7 @@ import { inject, ref, reactive, onMounted } from "vue"
 import socketManager from '../socketManager.js'
 import User from '../lib/class/user.js'
 import Game from '../lib/class/game.js'
+import router from "../router/index.js";
 
 
 // #region global state
@@ -20,10 +21,16 @@ const chatContent = ref("")
 
 const chatList = reactive([])
 const userList = reactive([])  // ユーザーリストをリアクティブに管理
+const terminal = reactive([]) // ターミナルをリアクティブに管理
 let alertedForHost = false;  // ホストであることを通知済みかを管理
 const isHost = ref(false);  // ホストであるかどうかを管理
 const remainingTime = ref(0)  // 残り時間を表示するためのリアクティブ変数
+const inGame = ref(false)  // ゲーム中かどうかを管理
 
+//お題
+const subject = ref('ここにお題が表示されます')
+
+const promptInput = ref('')
 
 //ダイアログの表示制御に使用
 const isVoteOpen = ref(false)
@@ -33,7 +40,7 @@ const isVoteEnded = ref(false)  // 投票が終了したかどうかを管理
 //投票フェーズの状態を管理
 const winner = ref('')  // 投票の結果を管理
 const selectedPlayer = ref('')  // 投票対象のプレイヤーを管理
-const voteRemainingTime = ref(0)
+// const voteRemainingTime = ref(0)
 
 // #endregion
 
@@ -56,16 +63,15 @@ const getWinner = (corpse) => {
 
 // #region browser event handler
 // 投稿メッセージをサーバに送信する
-const onPublish = () => {
-  if (chatContent.value.trim() === "") return;
+const onPublish = (message) => {
+  if (message.trim() === "") return;
 
   socket.emit("publishEvent", {
     user: userName.value,
-    message: chatContent.value
+    message: message
   });
 
   // 入力欄を初期化
-  chatContent.value = "";
 }
 
 // 退室メッセージをサーバに送信する
@@ -74,11 +80,10 @@ const onExit = () => {
 }
 
 // メモを画面上に表示する
-const onMemo = () => {
+const onMemo = (message) => {
   // メモの内容を表示
-  chatList.unshift(`${userName.value}$ memo ${chatContent.value}`);
+  chatList.unshift('// ' + message)
   // 入力欄を初期化
-  chatContent.value = "";
 }
 // #endregion
 
@@ -90,12 +95,12 @@ const onReceiveEnter = (data) => {
 
 // サーバから受信した退室メッセージを受け取り画面上に表示する
 const onReceiveExit = (data) => {
-  chatList.unshift(`return ${data}さん // ${data}が退出しました。`);
+  chatList.unshift(`export ${data}さん // ${data}が退出しました。`);
 }
 
 // サーバから受信した投稿メッセージを画面上に表示する
 const onReceivePublish = (data) => {
-  chatList.unshift(`${data.user}$ ${data.message}`);
+  chatList.unshift(`{${data.user}: "${data.message}"}`);
 }
 // #endregion
 
@@ -143,11 +148,20 @@ const registerSocketEvent = () => {
     userList.push(...game.users)
 
     wolf = game.wolf;
-    userList.value.forEach((user) => {
+    inGame.value = true;
+    console.log(userList)
+    userList.map(user => {
       if (user.name === userName.value) {
-        alert(`あなたのお題は ${user.subject} です`);　//お題を通知
+        subject.value = user.subject;
+        alert(`あなたのお題は ${subject.value} です`);　//お題を通知
       }
     })
+    // userList.value.forEach((user) => {
+    //   if (user.name === userName.value) {
+    //     subject.value = user.subject;
+    //     alert(`あなたのお題は ${user.subject} です`);　//お題を通知
+    //   }
+    // })
   })
 
   socket.on("timerUpdate", (timeLeft) => {
@@ -167,7 +181,7 @@ const registerSocketEvent = () => {
     isVoteWaiting.value = false;　// 投票待機中フラグをfalseに
     isVoteEnded.value = true;　// 投票終了フラグをtrueに
     winner.value = getWinner(corpse)　// 投票の結果を表示
-    console.log(userList.value)
+    inGame.value = false;　// ゲーム終了
   })
 
   socket.on("votingUpdate", (timeLeft) => {
@@ -182,6 +196,34 @@ const registerSocketEvent = () => {
 
 //ゲームの進行を行う関数
 //開始ボタン押下がトリガー
+const promptTrigger = () => {
+
+  if (promptInput.value.startsWith('memo ')) {
+    promptInput.value = promptInput.value.replace('memo ', '');
+    onMemo(promptInput.value);
+  } else if (promptInput.value === 'game start' ) {
+    if (isHost.value) {
+      processGame();
+    } else {
+      alert('ホスト以外はゲームを開始できません');
+    }
+
+  } else if (promptInput.value === 'exit') {
+    if (isHost.value) {
+      alert('ホストは退出できません');
+    } else if(inGame.value) {
+      alert('ゲーム中は退出できません');
+    } else {
+      onExit();
+      router.push('/')
+    }
+  } else {
+    onPublish(promptInput.value);
+  }
+  terminal.push(promptInput.value);
+  promptInput.value = '';
+}
+
 const processGame = () => {
 
   //ゲーム開始処理（入退室を制限）
@@ -190,7 +232,7 @@ const processGame = () => {
     return
   }
 
-  socket.emit('startGame')
+  socket.emit('startGame', 0.2) // ゲームを開始
 
   // //Gameクラスをインスタンス化
   // const game = new Game(userList);
@@ -233,7 +275,7 @@ const onVoteHandler = (selectedPlayer) => {
   <v-dialog v-model="isVoteOpen" width="auto" activator persistent>
     <v-card>
       <v-card-title>Who is the Wolf?</v-card-title>
-      <p>投票残り時間: {{ Math.floor(voteRemainingTime / 60) }}分{{ voteRemainingTime % 60 }}秒</p>
+      <!-- <p>投票残り時間: {{ Math.floor(voteRemainingTime / 60) }}分{{ voteRemainingTime % 60 }}秒</p> -->
       <select v-model="selectedPlayer">
       <option v-for="(user, index) in userList" 
         v-bind:value="index" 
@@ -255,7 +297,7 @@ const onVoteHandler = (selectedPlayer) => {
       <v-card-title>
         他の人の投票を待っています
       </v-card-title>
-    <p>投票残り時間: {{ Math.floor(voteRemainingTime / 60) }}分{{ voteRemainingTime % 60 }}秒</p>
+    <!-- <p>投票残り時間: {{ Math.floor(voteRemainingTime / 60) }}分{{ voteRemainingTime % 60 }}秒</p> -->
   </v-card>
   </v-dialog>
 
@@ -275,28 +317,44 @@ const onVoteHandler = (selectedPlayer) => {
       </v-card-actions>
     </v-card>
   </v-dialog>
+  <header>
+    <p>{{ subject }}</p>
+    <div v-if="remainingTime > 0">
+        <p>残り時間: {{ Math.floor(remainingTime / 60) }}分{{ remainingTime % 60 }}秒</p>
+      </div>
+  </header>
+  <div>
+  <p>{{ userList.length }} people</p>
+  <ul v-for="(user, i) in userList" :key="i">
+    <li><span v-if="userName === user.name">*</span>{{ user.name }}<span v-if="isHost && userName === user.name">（ホスト）</span></li>
+  </ul>
+  </div>
   <div class="mx-auto my-5 px-4">
     <h1 class="text-h3 font-weight-medium">Vue.js Chat チャットルーム</h1>
     <div class="mt-10">
-      <p>ログインユーザ：{{ userName }}さん</p>
-      <textarea v-model="chatContent" variant="outlined" placeholder="投稿文を入力してください" rows="4" class="area"></textarea>
+      <!-- <p>ログインユーザ：{{ userName }}さん</p> -->
+      <!-- <textarea v-model="chatContent" variant="outlined" placeholder="投稿文を入力してください" rows="4" class="area"></textarea>
       <div class="mt-5">
         <button @click="onPublish" class="button-normal">投稿</button>
         <button @click="onMemo" class="button-normal util-ml-8px">メモ</button>
         <button v-if="isHost" @click="processGame" class="button-normal">ゲーム開始</button>
-      </div>
+      </div> -->
       <div class="mt-5" v-if="chatList.length !== 0">
         <ul>
           <li class="item mt-4" v-for="(chat, i) in chatList" :key="i">{{ chat }}</li>
         </ul>
       </div>
-      <div v-if="remainingTime > 0">
-        <p>残り時間: {{ Math.floor(remainingTime / 60) }}分{{ remainingTime % 60 }}秒</p>
+      <div>
+        <p>TERMINAL</p>
+        <ul v-for="(line, i) in terminal">
+          <li>{{ userName }}$ {{ line }}</li>
+        </ul>
+        <p>{{ userName }}$ <input type="text" v-model="promptInput" @keyup.enter="promptTrigger"></p>
       </div>
     </div>
-    <router-link to="/" class="link">
+    <!-- <router-link to="/" class="link">
       <button type="button" class="button-normal button-exit" @click="onExit">退室する</button>
-    </router-link>
+    </router-link> -->
   </div>
 </template>
 
