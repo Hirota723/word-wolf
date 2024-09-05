@@ -6,18 +6,17 @@ import User from '../src/lib/class/user.js';
 let userList = [];
 let voteList = [];
 
+var timer
 // 投票結果を取得する
 const getVoteResult = () => {
-  console.log("userList:"+userList);
-  console.log("voteList:"+voteList);
+
   const voteResult = new Array(userList.length).fill(0);
-  console.log("voteResult:"+voteResult);
+
   voteList.forEach(vote => {
     voteResult[vote.votee]++;
   });
-  console.log("voteResult:"+voteResult);
+
   const corpse = voteResult.indexOf(Math.max(...voteResult));
-  console.log("corpse:"+corpse);
   return corpse;
 }
 
@@ -33,12 +32,13 @@ export default (io, socket) => {
     io.sockets.emit("updateUserList", userList);
   });
 
-  socket.on("startGame", () => {
+  socket.on("startGame", (duration) => {
     const game = new Game(userList);
     io.sockets.emit("startGame", game);
-    const timer = new Timer(0.1);
+    timer = new Timer(duration);
     timer.start(() => {
       io.sockets.emit("timerEnd");
+      timer = null
     }, (remainingTime) => {
       io.sockets.emit("timerUpdate", remainingTime);
   })});
@@ -65,38 +65,34 @@ export default (io, socket) => {
     io.sockets.emit("publishEvent", data);
   });
 
-  // 全クライアントにお題を送信
-  socket.on('subjectAssigned', (data) => {
-    io.sockets.emit('subjectAssigned', data);  // 全クライアントに送信
-  });
+ 
 
-  // タイマーをスタートしカウントダウンを送信する
-  socket.on("startTimer", (duration) => {
-    const timer = new Timer(duration);  // Timer クラスを使用して新しいタイマーを作成
 
-    timer.start(() => {
-      io.sockets.emit("timerEnd");  // タイマー終了時に通知を送信
-    }, (remainingTime) => {
-      io.sockets.emit("timerUpdate", remainingTime);  // 残り時間をクライアントに送信
-    });
-  });
   // 投票を開始する
   socket.on("initiateVoting", (duration) => {
     voteList.length = 0
-    const timer = new Timer(duration)
-    timer.start(() => {
-      const corpse = getVoteResult();
-      io.sockets.emit("votingEnd", corpse);
-      // voteListをクリア
-    }, (remainingTime) => {
-      io.sockets.emit("votingUpdate", remainingTime);
-    });
+    //  timer = new Timer(duration)
+    // timer.start(() => {
+    //   const corpse = getVoteResult();
+    //   io.sockets.emit("votingEnd", corpse);
+    //   timer.stop();
+    //   timer = null;
+    //   // voteListをクリア
+    // }, (remainingTime) => {
+    //   io.sockets.emit("votingUpdate", remainingTime);
+    // });
   });
 
 
   // 投票を受け付ける
   socket.on("votingEvent", (data) => {
     voteList.push(data);
+    if (voteList.length === userList.length) {
+      // timer.stop()
+      // timer = null
+      const corpse = getVoteResult();
+      io.sockets.emit("votingEnd", corpse);
+    }
     console.log(voteList);
 
   });

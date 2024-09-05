@@ -24,6 +24,7 @@ class Timer {
 
     stop() {
         clearInterval(this.intervalId);
+        
     }
 }
 
