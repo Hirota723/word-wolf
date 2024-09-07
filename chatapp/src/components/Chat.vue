@@ -333,23 +333,26 @@ const onVoteHandler = (selectedPlayer) => {
 <template>
   <!-- 投票用ダイアログの表示 -->
   <v-dialog v-model="isVoteOpen" width="auto" activator persistent>
-    <v-card>
-      <v-card-title>Who is the Wolf?</v-card-title>
+    <v-card class="px-6 py-4" style="background-color: #282C34; border: 1px solid white;">
+      <v-card-title class="text-white" style="font-size: 1.5em;">Who is the Wolf?</v-card-title>
       <!-- <p>投票残り時間: {{ Math.floor(voteRemainingTime / 60) }}分{{ voteRemainingTime % 60 }}秒</p> -->
-      <select v-model="selectedPlayer">
-        <option v-for="(user, index) in userList" v-bind:value="index" v-bind:key="index">
+      <select v-model="selectedPlayer"
+        style="border: 1px solid white; border-radius: 8px; color: white; text-align: center; font-weight: bold; background-color: #282C34; outline: none;">
+        <option value="" disabled selected style="color: white; text-align: center; font-weight: bold;">select...
+        </option>
+        <option v-for="(user, index) in userList" v-bind:value="index" v-bind:key="index" style="color: white;">
           {{ user.name }}
         </option>
       </select>
       <v-card-actions>
-        <v-btn color="primary" block @click="onVoteHandler(selectedPlayer)">Vote</v-btn>
+        <v-btn style="color: white; font-weight: bold;" block @click="onVoteHandler(selectedPlayer)">Vote</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
 
   <!-- 投票待ちダイアログの表示 -->
   <v-dialog v-model="isVoteWaiting" width="auto" activator persistent>
-    <v-card>
+    <v-card class="px-6 py-4" style="color: white; background-color: #282C34; border: 1px solid white;">
       <v-card-title>
         他の人の投票を待っています
       </v-card-title>
@@ -359,15 +362,15 @@ const onVoteHandler = (selectedPlayer) => {
 
   <!-- ゲーム結果ダイアログの表示 -->
   <v-dialog v-model="isVoteEnded" width="auto" activator persistent>
-    <v-card>
-      <v-card-title>{{ winner }} win!</v-card-title>
+    <v-card class="px-6 py-4" style="color: white; background-color: #282C34; border: 1px solid white;">
+      <v-card-title style="font-size: 1.5em;">{{ winner }} win!</v-card-title>
       <ul>
-        <li v-for="(user, index) in userList" :key="index">
+        <li v-for="(user, index) in userList" :key="index" class="pb-1">
           {{ user.name }}: "{{ user.subject }}"
         </li>
       </ul>
       <v-card-actions>
-        <v-btn color="primary" block @click="isVoteEnded = !isVoteEnded">close</v-btn>
+        <v-btn style="color: white; font-weight: bold;" block @click="isVoteEnded = !isVoteEnded">close</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -386,7 +389,7 @@ const onVoteHandler = (selectedPlayer) => {
       </div>
       <ul>
         <li v-for="(user, i) in userList" :key="i" class="flex items-center px-4 pb-1">
-          <span class="w-4 text-yellow-500 text-lg mr-2" v-if="userName === user.name">★</span>
+          <span class="w-4 text-yellow-500 text-lg mr-2" v-if="user.isHost">★</span>
           <span class="w-4 mr-2" v-else></span>
           <span class="text-white">{{ user.name }}</span>
           <!-- <span v-if="isHost && userName === user.name" class="ml-2">(ホスト)</span> -->
