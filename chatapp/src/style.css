@@ -1,5 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: 'Fira Code';
+  src: url('./assets/fonts/FiraCode-Regular.woff2') format('woff2'),
+    url('./assets/fonts/FiraCode-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Fira Code';
+  src: url('./assets/fonts/FiraCode-Bold.woff2') format('woff2'),
+    url('./assets/fonts/FiraCode-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+}
+
 body {
-  padding: 2em;
+  font-family: 'Fira Code', monospace;
+  background-color: #21252B;
+  color: white;
+  font-weight: 600;
 }
 
 .button-normal {
@@ -7,4 +30,24 @@ body {
   background-color: #eee;
   border-radius: 4px;
   padding: 4px;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+/* スクロールバーのトラック（背景） */
+::-webkit-scrollbar-track {
+  background: #21252B;
+}
+
+/* スクロールバーのハンドル（つまみ） */
+::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 4px;
+}
+
+/* スクロールバーのハンドルがホバーされたときの色 */
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
